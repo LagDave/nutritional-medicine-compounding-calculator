@@ -7,17 +7,21 @@ type IngredientProps = {
   wholesale_price: number;
   grams_per_pack: number;
   totalDoses: number;
+  defaultValue: number;
+  onIngredientElementalDoseChange: (value: number) => void;
 };
 
 export default function Ingredient({
+  defaultValue,
   name,
   molecular_weight_elemental,
   molecular_weight_total_salt,
   wholesale_price,
   grams_per_pack,
   totalDoses,
+  onIngredientElementalDoseChange,
 }: IngredientProps) {
-  const [elementalDose, setElementalDose] = useState(0);
+  const [elementalDose, setElementalDose] = useState(defaultValue);
   const saltToElementalConversion: number =
     Number(
       (molecular_weight_total_salt / molecular_weight_elemental).toFixed(2)
@@ -34,16 +38,33 @@ export default function Ingredient({
     2
   );
 
+  function handleElementalDoseChange(value: number) {
+    setElementalDose(value);
+    onIngredientElementalDoseChange(value);
+  }
+
   return (
-    <div className="min-w-[350px] p-5 bg-gray-100" key={name}>
+    <div className="min-w-[350px] p-5 bg-white rounded-lg" key={name}>
       <p className="text-2xl font-thin text-center mb-5">{name}</p>
-      <div className="flex">
-        <input
-          placeholder="Elemental Dose"
-          onChange={(e) => setElementalDose(parseInt(e.target.value))}
-          className="border-[1px] px-1 w-fulld border-gray-400 outline-none"
-          type="number"
-        />
+      <div>
+        <p className="text-gray-500 flex">
+          Elemental Dose(mg):
+          <div className="ml-auto">
+            <input
+              onChange={(e) =>
+                handleElementalDoseChange(parseInt(e.target.value))
+              }
+              className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md"
+              type="number"
+              defaultValue={defaultValue}
+              onKeyDown={(e) => {
+                if (e.which === 109 || e.which === 189 || e.which === 69) {
+                  e.preventDefault();
+                }
+              }}
+            />
+          </div>
+        </p>
       </div>
       <div className="h-[1px] w-1/2 bg-gray-400 my-3"></div>
       <div className="flex flex-col gap-2">
