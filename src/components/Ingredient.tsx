@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type IngredientProps = {
   name: string;
@@ -8,7 +8,15 @@ type IngredientProps = {
   grams_per_pack: number;
   totalDoses: number;
   defaultValue: number;
-  onIngredientElementalDoseChange: (value: number) => void;
+  onIngredientElementalDoseChange: ({
+    elementalDose,
+    totalPerPrescription,
+    dollarPerPrescription,
+  }: {
+    elementalDose: number;
+    totalPerPrescription: number;
+    dollarPerPrescription: number;
+  }) => void;
 };
 
 export default function Ingredient({
@@ -23,24 +31,31 @@ export default function Ingredient({
 }: IngredientProps) {
   const [elementalDose, setElementalDose] = useState(defaultValue);
   const saltToElementalConversion: number =
-    Number(
-      (molecular_weight_total_salt / molecular_weight_elemental).toFixed(2)
-    ) || 0;
-  const totalPerDose =
-    Number((elementalDose * saltToElementalConversion).toFixed(2)) || 0;
+    Number(molecular_weight_total_salt / molecular_weight_elemental) || 0;
+  const totalPerDose = Number(elementalDose * saltToElementalConversion) || 0;
   const totalPerPrescription: number = Number(
-    ((totalPerDose * (totalDoses || 0)) / 1000).toFixed(3)
+    (totalPerDose * (totalDoses || 0)) / 1000
   );
-  const dollarPerGram: number = Number(
-    (wholesale_price / grams_per_pack).toFixed(2)
-  );
-  const dollarPerPrescription = (totalPerPrescription * dollarPerGram).toFixed(
-    2
-  );
+  const dollarPerGram: number = Number(wholesale_price / grams_per_pack);
+  const dollarPerPrescription: number = totalPerPrescription * dollarPerGram;
 
-  function handleElementalDoseChange(value: number) {
-    setElementalDose(value);
-    onIngredientElementalDoseChange(value);
+  const [showConstants, setShowConstants] = useState(false);
+
+  useEffect(() => {
+    onIngredientElementalDoseChange({
+      elementalDose,
+      totalPerPrescription,
+      dollarPerPrescription,
+    });
+  }, [dollarPerPrescription]);
+
+  function handleElementalDoseChange(elementalDose: number) {
+    setElementalDose(elementalDose);
+    onIngredientElementalDoseChange({
+      elementalDose,
+      totalPerPrescription,
+      dollarPerPrescription,
+    });
   }
 
   return (
@@ -68,49 +83,69 @@ export default function Ingredient({
       </div>
       <div className="h-[1px] w-1/2 bg-gray-400 my-3"></div>
       <div className="flex flex-col gap-2">
-        <p className="text-gray-500 flex">
-          Molecular weight elemental:
-          <strong className="text-black ml-auto">
-            {molecular_weight_elemental}
-          </strong>
-        </p>
-        <p className="text-gray-500 flex">
-          Molecular weight total salt:
-          <strong className="text-black ml-auto">
-            {molecular_weight_total_salt}
-          </strong>
-        </p>
+        <button
+          className="text- text-left text-gray-500"
+          onClick={() => setShowConstants(!showConstants)}
+        >
+          {showConstants ? "Hide" : "Show"} Constants
+        </button>
+        <div
+          className={`${
+            showConstants ? "h-[96px]" : "h-0"
+          } overflow-hidden duration-200`}
+        >
+          <p className="text-gray-500 flex">
+            Molecular weight elemental:
+            <strong className="text-black ml-auto">
+              {molecular_weight_elemental}
+            </strong>
+          </p>
+          <p className="text-gray-500 flex">
+            Molecular weight total salt:
+            <strong className="text-black ml-auto">
+              {molecular_weight_total_salt}
+            </strong>
+          </p>
+          <p className="text-gray-500 flex">
+            g / pack:
+            <strong className="text-black ml-auto">{grams_per_pack}</strong>
+          </p>
+          <p className="text-gray-500 flex">
+            $ / gram:
+            <strong className="text-black ml-auto">
+              {dollarPerGram.toFixed(2)}
+            </strong>
+          </p>
+        </div>
         <p className="text-gray-500 flex">
           Salt to elemental conversion:
           <strong className="text-black ml-auto">
-            {saltToElementalConversion}
+            {saltToElementalConversion.toFixed(2)}
           </strong>
         </p>
         <p className="text-gray-500 flex">
           Total per dose (mg):
-          <strong className="text-black ml-auto">{totalPerDose}</strong>
+          <strong className="text-black ml-auto">
+            {totalPerDose.toFixed(1)}
+          </strong>
         </p>
         <p className="text-gray-500 flex">
           Total per prescription (g):
-          <strong className="text-black ml-auto">{totalPerPrescription}</strong>
+          <strong className="text-black ml-auto">
+            {totalPerPrescription.toFixed(3)}
+          </strong>
         </p>
 
         <p className="text-gray-500 flex">
           Wholesale price ($ / pack):
-          <strong className="text-black ml-auto">{wholesale_price}</strong>
-        </p>
-        <p className="text-gray-500 flex">
-          g / pack:
-          <strong className="text-black ml-auto">{grams_per_pack}</strong>
-        </p>
-        <p className="text-gray-500 flex">
-          $ / gram:
-          <strong className="text-black ml-auto">{dollarPerGram}</strong>
+          <strong className="text-black ml-auto">
+            {wholesale_price.toFixed(2)}
+          </strong>
         </p>
         <p className="text-gray-500 flex">
           $ / prescription:
           <strong className="text-black ml-auto">
-            {dollarPerPrescription}
+            {dollarPerPrescription.toFixed(2)}
           </strong>
         </p>
       </div>
