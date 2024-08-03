@@ -6,36 +6,42 @@ export default function App() {
   const [totalDoses, setTotalDoses] = useState(1);
   const [numberOfDays, setNumberOfDays] = useState(20);
   const [dosesPerDay, setDosesPerDay] = useState(2);
+  const [shownIngredients, setShownIngredients] = useState<number[]>([]);
 
-  const totalIngredientsArray = ingredients.map((i) => i.defaultTotalPerDose);
-  const [totalIngredients, setTotalIngredients] = useState(
-    totalIngredientsArray.reduce((a: number, b: number) => {
-      return a + b;
-    }, 0)
-  );
+  // Total Ingredients (mg)
+  let [totalIngredientsArray] = useState([0, 0, 0, 0, 0]);
+  const [totalIngredients, setTotalIngredients] = useState(0);
 
-  const totalPerPrescriptionArray = ingredients.map(
-    (i) => i.defaultTotalPerPrescription
-  );
-  const [totalPerPrescriptionTotal, setTotalPerPrescriptionTotal] = useState(
-    totalPerPrescriptionArray.reduce((a: number, b: number) => {
-      return a + b;
-    }, 0)
-  );
+  // Total/Prescription (g)
+  let [totalPerPrescriptionArray] = useState([0, 0, 0, 0, 0]);
+  const [totalPerPrescriptionTotal, setTotalPerPrescriptionTotal] = useState(0);
 
-  const [dollarPerPrescriptionArray, setDollarPerPrescriptionArray] = useState<
-    number[]
-  >([]);
-  const dollarPerPrescription = dollarPerPrescriptionArray.reduce(
-    (a: number, b: number) => {
-      return a + b;
-    },
-    0
-  );
+  // Dollar/Prescription ($)
+  let [dollarPerPrescriptionArray, setDollarPerPrescriptionArray] = useState([
+    0, 0, 0, 0, 0,
+  ]);
+  let [dollarPerPrescription, setDollarPerPrescription] = useState(0);
+
+  function updateDollarPerPrescription() {
+    setDollarPerPrescriptionArray(
+      dollarPerPrescriptionArray.map((item, index) => {
+        return shownIngredients.indexOf(index) > -1 ? item : 0;
+      })
+    );
+    setDollarPerPrescription(
+      dollarPerPrescriptionArray.reduce((a: number, b: number) => {
+        return a + b;
+      }, 0)
+    );
+  }
 
   useEffect(() => {
     setTotalDoses(numberOfDays * dosesPerDay || 0);
-  }, [numberOfDays, dosesPerDay]);
+  }, [numberOfDays, dosesPerDay, shownIngredients]);
+
+  useEffect(() => {
+    updateDollarPerPrescription();
+  }, [shownIngredients]);
 
   function handleIngredientElementalDoseChange(
     index: number,
@@ -49,6 +55,8 @@ export default function App() {
       dollarPerPrescription: number;
     }
   ): void {
+    updateDollarPerPrescription();
+
     totalIngredientsArray[index] = elementalDose;
     setTotalIngredients(
       totalIngredientsArray.reduce((a: number, b: number) => {
@@ -57,7 +65,6 @@ export default function App() {
     );
 
     totalPerPrescriptionArray[index] = totalPerPrescription;
-
     setTotalPerPrescriptionTotal(
       totalPerPrescriptionArray.reduce((a: number, b: number) => {
         return a + b;
@@ -66,7 +73,15 @@ export default function App() {
 
     const dollarPerPrescriptionTemp: number[] = dollarPerPrescriptionArray;
     dollarPerPrescriptionTemp[index] = dollarPerPrescription;
-    setDollarPerPrescriptionArray(dollarPerPrescriptionTemp);
+    dollarPerPrescriptionArray = dollarPerPrescriptionTemp;
+  }
+
+  function updateShownIngredients(value: number) {
+    if (shownIngredients.indexOf(value) > -1) {
+      setShownIngredients(shownIngredients.filter((n) => n !== value));
+    } else {
+      setShownIngredients([...shownIngredients, value]);
+    }
   }
 
   return (
@@ -110,6 +125,22 @@ export default function App() {
         </div>
       </div>
 
+      <div className="my-5 flex gap-5">
+        <p>Select Ingredients:</p>
+        {ingredients.map(({ name }, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <input
+              className="scale-150"
+              type="checkbox"
+              onChange={(e) => updateShownIngredients(parseInt(e.target.value))}
+              value={index}
+              name="ingredients"
+            />
+            {name}
+          </div>
+        ))}
+      </div>
+
       <div className="flex gap-5 flex-wrap">
         {ingredients.map(
           (
@@ -119,33 +150,33 @@ export default function App() {
               molecular_weight_total_salt,
               wholesale_price,
               grams_per_pack,
-              defaultValue,
             },
             index
-          ) => (
-            <div key={index}>
-              <Ingredient
-                name={name}
-                molecular_weight_elemental={molecular_weight_elemental}
-                molecular_weight_total_salt={molecular_weight_total_salt}
-                wholesale_price={wholesale_price}
-                grams_per_pack={grams_per_pack}
-                defaultValue={defaultValue}
-                totalDoses={totalDoses}
-                onIngredientElementalDoseChange={({
-                  elementalDose,
-                  totalPerPrescription,
-                  dollarPerPrescription,
-                }) =>
-                  handleIngredientElementalDoseChange(index, {
+          ) =>
+            shownIngredients.indexOf(index) > -1 && (
+              <div key={index}>
+                <Ingredient
+                  name={name}
+                  molecular_weight_elemental={molecular_weight_elemental}
+                  molecular_weight_total_salt={molecular_weight_total_salt}
+                  wholesale_price={wholesale_price}
+                  grams_per_pack={grams_per_pack}
+                  defaultValue={0}
+                  totalDoses={totalDoses}
+                  onIngredientElementalDoseChange={({
                     elementalDose,
                     totalPerPrescription,
                     dollarPerPrescription,
-                  })
-                }
-              />
-            </div>
-          )
+                  }) =>
+                    handleIngredientElementalDoseChange(index, {
+                      elementalDose,
+                      totalPerPrescription,
+                      dollarPerPrescription,
+                    })
+                  }
+                />
+              </div>
+            )
         )}
       </div>
 
@@ -163,7 +194,7 @@ export default function App() {
           <p>{totalPerPrescriptionTotal.toFixed(3)}g</p>
         </div>
         <div className="flex gap-2">
-          <p className="text-xl">Total</p>
+          <p className="text-xl">Total:</p>
           <p className="text-xl font-bold">
             ${dollarPerPrescription.toFixed(2)}
           </p>
