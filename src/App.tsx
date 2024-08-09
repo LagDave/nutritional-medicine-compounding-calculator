@@ -3,45 +3,121 @@ import Ingredient from "./components/Ingredient";
 import { useEffect, useState } from "react";
 
 export default function App() {
+  /** INGREDIENTS */
   const [totalDoses, setTotalDoses] = useState(1);
   const [numberOfDays, setNumberOfDays] = useState(20);
   const [dosesPerDay, setDosesPerDay] = useState(2);
   const [shownIngredients, setShownIngredients] = useState<number[]>([]);
 
-  // Total Ingredients (mg)
-  let [totalIngredientsArray] = useState([0, 0, 0, 0, 0]);
-  const [totalIngredients, setTotalIngredients] = useState(0);
+  /** CONSUMABLES */
+  const scoopPrice = 0.45;
+  const [scoop, setScoop] = useState(1);
 
-  // Total/Prescription (g)
-  let [totalPerPrescriptionArray] = useState([0, 0, 0, 0, 0]);
-  const [totalPerPrescriptionTotal, setTotalPerPrescriptionTotal] = useState(0);
+  const containerPrice = 0.85;
+  const [container, setContainer] = useState(1);
 
-  // Dollar/Prescription ($)
-  let [dollarPerPrescriptionArray, setDollarPerPrescriptionArray] = useState([
+  const [consumablesTotal, setConsumablesTotal] = useState(
+    scoopPrice + containerPrice
+  );
+
+  /** ADDITIONALS */
+  const [materialsMarkup, setMaterialsMarkup] = useState(0);
+  const [materialsMarkupTotal, setMaterialsMarkupTotal] = useState(0);
+  const [compoundingFee, setCompoundingFee] = useState(0);
+  const [totalAdditionals, setTotalAdditionals] = useState(0);
+
+  // Ingredients total ($) - the total of all $/prescription
+  const [ingredientsTotalArray, setIngredientsTotalArray] = useState([
     0, 0, 0, 0, 0,
   ]);
-  let [dollarPerPrescription, setDollarPerPrescription] = useState(0);
+  const [ingredientsTotal, setIngredientsTotal] = useState(0);
 
-  function updateDollarPerPrescription() {
-    setDollarPerPrescriptionArray(
-      dollarPerPrescriptionArray.map((item, index) => {
-        return shownIngredients.indexOf(index) > -1 ? item : 0;
-      })
-    );
-    setDollarPerPrescription(
-      dollarPerPrescriptionArray.reduce((a: number, b: number) => {
-        return a + b;
-      }, 0)
-    );
-  }
+  // Total/Prescription (g) - the total of all total/prescriotion in g
+  const [totalPerPrescriptionArray, setTotalPerPrescriptionArray] = useState([
+    0, 0, 0, 0, 0,
+  ]);
+  const [totalPerPrescription, setTotalPerPrescription] = useState(0);
+
+  // Total Ingredients content in mg
+  const [totalIngredientsArray, setTotalIngredientsArray] = useState([
+    0, 0, 0, 0, 0,
+  ]);
+  const [totalIngredients, setTotalIngredients] = useState(0);
+
+  const [priceToPatient, setPriceToPatient] = useState(0);
 
   useEffect(() => {
     setTotalDoses(numberOfDays * dosesPerDay || 0);
   }, [numberOfDays, dosesPerDay, shownIngredients]);
 
   useEffect(() => {
-    updateDollarPerPrescription();
-  }, [shownIngredients]);
+    setIngredientsTotal(
+      ingredientsTotalArray.reduce((acc, current, index) => {
+        if (shownIngredients.includes(index)) {
+          return acc + current;
+        }
+        return acc;
+      }, 0)
+    );
+  }, [shownIngredients, ingredientsTotalArray]);
+
+  useEffect(() => {
+    setTotalPerPrescription(
+      totalPerPrescriptionArray.reduce((acc, current, index) => {
+        if (shownIngredients.includes(index)) {
+          return acc + current;
+        }
+        return acc;
+      }, 0)
+    );
+  }, [shownIngredients, totalPerPrescriptionArray]);
+
+  useEffect(() => {
+    setTotalIngredients(
+      totalIngredientsArray.reduce((acc, current, index) => {
+        if (shownIngredients.includes(index)) {
+          return acc + current;
+        }
+        return acc;
+      }, 0)
+    );
+  }, [shownIngredients, totalIngredientsArray]);
+
+  /** CONSUMABLES */
+  useEffect(() => {
+    if (scoop < 0 || container < 0) {
+      return;
+    }
+    const scoopTotal = scoop * scoopPrice;
+    const containerTotal = container * containerPrice;
+    setConsumablesTotal(scoopTotal + containerTotal);
+  }, [scoop, container]);
+
+  /** ADDITIONALS */
+  useEffect(() => {
+    setMaterialsMarkupTotal(
+      (materialsMarkup / 100) * (consumablesTotal + ingredientsTotal)
+    );
+  }, [materialsMarkup, consumablesTotal, ingredientsTotal]);
+
+  useEffect(() => {
+    setTotalAdditionals(materialsMarkupTotal + compoundingFee);
+  }, [materialsMarkupTotal, compoundingFee]);
+
+  /** PRICE TO PATIENT */
+  useEffect(() => {
+    setPriceToPatient(
+      ingredientsTotal +
+        consumablesTotal +
+        materialsMarkupTotal +
+        compoundingFee
+    );
+  }, [
+    ingredientsTotal,
+    consumablesTotal,
+    materialsMarkupTotal,
+    compoundingFee,
+  ]);
 
   function handleIngredientElementalDoseChange(
     index: number,
@@ -49,31 +125,29 @@ export default function App() {
       elementalDose,
       totalPerPrescription,
       dollarPerPrescription,
+      totalPerDose,
     }: {
       elementalDose: number;
       totalPerPrescription: number;
       dollarPerPrescription: number;
+      totalPerDose: number;
     }
-  ): void {
-    updateDollarPerPrescription();
-
-    totalIngredientsArray[index] = elementalDose;
-    setTotalIngredients(
-      totalIngredientsArray.reduce((a: number, b: number) => {
-        return a + b;
-      }, 0)
-    );
-
-    totalPerPrescriptionArray[index] = totalPerPrescription;
-    setTotalPerPrescriptionTotal(
-      totalPerPrescriptionArray.reduce((a: number, b: number) => {
-        return a + b;
-      }, 0)
-    );
-
-    const dollarPerPrescriptionTemp: number[] = dollarPerPrescriptionArray;
-    dollarPerPrescriptionTemp[index] = dollarPerPrescription;
-    dollarPerPrescriptionArray = dollarPerPrescriptionTemp;
+  ) {
+    setIngredientsTotalArray((prevArray) => {
+      const newArray = [...prevArray];
+      newArray[index] = dollarPerPrescription;
+      return newArray;
+    });
+    setTotalPerPrescriptionArray((prevArray) => {
+      const newArray = [...prevArray];
+      newArray[index] = totalPerPrescription;
+      return newArray;
+    });
+    setTotalIngredientsArray((prevArray) => {
+      const newArray = [...prevArray];
+      newArray[index] = totalPerDose;
+      return newArray;
+    });
   }
 
   function updateShownIngredients(value: number) {
@@ -85,47 +159,76 @@ export default function App() {
   }
 
   return (
-    <div className="max-w-[1140px] mx-auto my-5">
-      <h1 className="text-2xl font-bold">
-        Nutritional Medicine Compounding Calculator
+    <div className="max-w-[1280px] mx-auto my-5">
+      <h1 className="text-3xl font-bold">
+        Extemporaneous Compounding Calculator
       </h1>
 
-      <div className="my-5 flex flex-col gap-2">
-        <div className="flex gap-2">
-          <p>Doses/day:</p>
-          <input
-            onChange={(e) => setDosesPerDay(parseInt(e.target.value))}
-            className="border-[1px] px-2 py-1 rounded-md border-gray-400 outline-none"
-            type="number"
-            defaultValue={dosesPerDay}
-            onKeyDown={(e) => {
-              if (e.which === 109 || e.which === 189 || e.which === 69) {
-                e.preventDefault();
-              }
-            }}
-          />
+      <div className="flex mt-[50px] gap-5">
+        <div className="flex flex-col gap-2 w-[400px]">
+          <div className="flex gap-2">
+            <p>Formula Name:</p>
+            <input
+              className="border-[1px] px-2 py-1 rounded-md border-gray-400 outline-none ml-auto"
+              type="text"
+            />
+          </div>
+          <div className="flex gap-2">
+            <p>Patient Name:</p>
+            <input
+              className="border-[1px] px-2 py-1 rounded-md border-gray-400 outline-none ml-auto"
+              type="text"
+            />
+          </div>
+          <div className="flex gap-2">
+            <p>Date:</p>
+            <input
+              className="border-[1px] px-2 py-1 rounded-md border-gray-400 outline-none ml-auto"
+              type="date"
+            />
+          </div>
+          <div className="flex gap-2">
+            <p>Instructions for patient:</p>
+            <textarea className="border-[1px] px-2 py-1 rounded-md border-gray-400 outline-none h-[50px] ml-auto"></textarea>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <p># Days:</p>
-          <input
-            onChange={(e) => setNumberOfDays(parseInt(e.target.value))}
-            className="border-[1px] px-2 py-1 rounded-md border-gray-400 outline-none"
-            type="number"
-            defaultValue={numberOfDays}
-            onKeyDown={(e) => {
-              if (e.which === 109 || e.which === 189 || e.which === 69) {
-                e.preventDefault();
-              }
-            }}
-          />
-        </div>
-        <div className="flex gap-2">
-          <p>Total # of doses:</p>
-          <p>{totalDoses}</p>
+        <div className="flex flex-col gap-2 w-[400px]">
+          <div className="flex gap-2">
+            <p>Doses/day:</p>
+            <input
+              onChange={(e) => setDosesPerDay(parseInt(e.target.value))}
+              className="border-[1px] px-2 py-1 rounded-md border-gray-400 outline-none ml-auto"
+              type="number"
+              defaultValue={dosesPerDay}
+              onKeyDown={(e) => {
+                if (e.which === 109 || e.which === 189 || e.which === 69) {
+                  e.preventDefault();
+                }
+              }}
+            />
+          </div>
+          <div className="flex gap-2">
+            <p># Days:</p>
+            <input
+              onChange={(e) => setNumberOfDays(parseInt(e.target.value))}
+              className="border-[1px] px-2 py-1 rounded-md border-gray-400 outline-none ml-auto"
+              type="number"
+              defaultValue={numberOfDays}
+              onKeyDown={(e) => {
+                if (e.which === 109 || e.which === 189 || e.which === 69) {
+                  e.preventDefault();
+                }
+              }}
+            />
+          </div>
+          <div className="flex gap-2">
+            <p>Total # of doses:</p>
+            <p className="ml-auto font-bold">{totalDoses}</p>
+          </div>
         </div>
       </div>
 
-      <div className="my-5 flex gap-5">
+      <div className="mt-[50px] mb-5 flex gap-5">
         <p>Select Ingredients:</p>
         {ingredients.map(({ name }, index) => (
           <div key={index} className="flex items-center gap-2">
@@ -141,7 +244,14 @@ export default function App() {
         ))}
       </div>
 
-      <div className="flex gap-5 flex-wrap">
+      <div
+        className={`flex gap-5 flex-wrap min-h-[420px] bg-gray-200 items-center p-5 ${
+          shownIngredients.length === 0 && "justify-center"
+        } rounded-lg`}
+      >
+        {shownIngredients.length === 0 && (
+          <p>Start by enabling ingredients above</p>
+        )}
         {ingredients.map(
           (
             {
@@ -152,52 +262,144 @@ export default function App() {
               grams_per_pack,
             },
             index
-          ) =>
-            shownIngredients.indexOf(index) > -1 && (
-              <div key={index}>
-                <Ingredient
-                  name={name}
-                  molecular_weight_elemental={molecular_weight_elemental}
-                  molecular_weight_total_salt={molecular_weight_total_salt}
-                  wholesale_price={wholesale_price}
-                  grams_per_pack={grams_per_pack}
-                  defaultValue={0}
-                  totalDoses={totalDoses}
-                  onIngredientElementalDoseChange={({
+          ) => (
+            <div
+              className={`${
+                shownIngredients.indexOf(index) === -1 && "hidden"
+              }`}
+              key={index}
+            >
+              <Ingredient
+                name={name}
+                molecular_weight_elemental={molecular_weight_elemental}
+                molecular_weight_total_salt={molecular_weight_total_salt}
+                wholesale_price={wholesale_price}
+                grams_per_pack={grams_per_pack}
+                totalDoses={totalDoses}
+                onIngredientElementalDoseChange={({
+                  elementalDose,
+                  totalPerPrescription,
+                  dollarPerPrescription,
+                  totalPerDose,
+                }) =>
+                  handleIngredientElementalDoseChange(index, {
                     elementalDose,
                     totalPerPrescription,
                     dollarPerPrescription,
-                  }) =>
-                    handleIngredientElementalDoseChange(index, {
-                      elementalDose,
-                      totalPerPrescription,
-                      dollarPerPrescription,
-                    })
-                  }
-                />
-              </div>
-            )
+                    totalPerDose,
+                  })
+                }
+              />
+            </div>
+          )
         )}
       </div>
 
-      <div className="my-5 flex flex-col gap-2">
-        <div className="flex gap-2">
-          <p>Total Ingredients:</p>
-          <p>{totalIngredients}mg</p>
+      <div className="flex gap-5 my-5">
+        <div className="w-1/4 border border-gray-400 p-5 rounded-md">
+          <div className="flex flex-col gap-2">
+            <p className="font-bold">Ingredients: </p>
+            <div className="flex gap-2">
+              <p>Total Ingredients (mg):</p>
+              <p className="font-bold">{totalIngredients.toFixed(1)}mg</p>
+            </div>
+            <div className="flex gap-2">
+              <p>Total per dose (g):</p>
+              <p className="font-bold">
+                {(totalIngredients / 1000).toFixed(3)}mg
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <p>Total per prescription (g):</p>
+              <p className="font-bold">{totalPerPrescription.toFixed(3)}g</p>
+              {/* <p>{(totalIngredients / 1000).toFixed(3)}mg</p> */}
+            </div>
+            <div className="flex gap-2">
+              <p>Total Prescription Price:</p>
+              <p className="font-bold">${ingredientsTotal.toFixed(2)}</p>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <p>Total per dose:</p>
-          <p>{(totalIngredients / 1000).toFixed(3)}mg</p>
+        <div className="w-1/4 border border-gray-400 p-5 rounded-md">
+          <div className="flex flex-col gap-2">
+            <p className="font-bold">Consumables:</p>
+            <div className="flex gap-2 items-center">
+              <p>Container:</p>
+              <input
+                defaultValue={container}
+                onChange={(e) => setContainer(parseInt(e.target.value))}
+                type="text"
+                className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md"
+              />
+            </div>
+            <div className="flex gap-2 items-center">
+              <p>Scoop:</p>
+              <input
+                defaultValue={scoop}
+                onChange={(e) => setScoop(parseInt(e.target.value))}
+                type="text"
+                className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md"
+              />
+            </div>
+            <p>
+              Total Consumables: <strong>${consumablesTotal}</strong>
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <p>Weight of total powder/prescription:</p>
-          <p>{totalPerPrescriptionTotal.toFixed(3)}g</p>
-        </div>
-        <div className="flex gap-2">
-          <p className="text-xl">Total:</p>
-          <p className="text-xl font-bold">
-            ${dollarPerPrescription.toFixed(2)}
-          </p>
+        <div className="w-1/2 border border-gray-400 p-5 rounded-md">
+          <div className="flex gap-2">
+            <div className="w-[65%]">
+              <div className="flex flex-col gap-2">
+                <p className="font-bold">Additionals:</p>
+                <div className="flex gap-2 items-center">
+                  <p>Materials Markup (%):</p>
+                  <input
+                    defaultValue={materialsMarkup}
+                    onChange={(e) =>
+                      setMaterialsMarkup(parseFloat(e.target.value))
+                    }
+                    type="text"
+                    className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md"
+                  />
+                  <p className="font-bold">
+                    ${materialsMarkupTotal.toFixed(2)}
+                  </p>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <p>Compounding Fee ($):</p>
+                  <input
+                    defaultValue={compoundingFee}
+                    onChange={(e) =>
+                      setCompoundingFee(parseFloat(e.target.value))
+                    }
+                    type="text"
+                    className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md"
+                  />
+                  <p className="font-bold">${compoundingFee}</p>
+                </div>
+                <p>
+                  Total Additionals:{" "}
+                  <strong>${totalAdditionals.toFixed(2)}</strong>
+                </p>
+              </div>
+            </div>
+            <div className="w-[35%]">
+              <div className="flex flex-col gap-2">
+                <p>
+                  <strong>Price to Patient</strong> (exc GST):
+                </p>
+                <p className="text-xl">${priceToPatient.toFixed(2)}</p>
+                <div className="flex flex-col gap-2 mt-5">
+                  <button className="bg-gray-800 text-white rounded-md p-2">
+                    Export for Patient
+                  </button>
+                  <button className="bg-gray-400 text-white rounded-md p-2">
+                    Export for Practitioners
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

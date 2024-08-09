@@ -7,20 +7,20 @@ type IngredientProps = {
   wholesale_price: number;
   grams_per_pack: number;
   totalDoses: number;
-  defaultValue: number;
   onIngredientElementalDoseChange: ({
     elementalDose,
     totalPerPrescription,
     dollarPerPrescription,
+    totalPerDose,
   }: {
     elementalDose: number;
     totalPerPrescription: number;
     dollarPerPrescription: number;
+    totalPerDose: number;
   }) => void;
 };
 
 export default function Ingredient({
-  defaultValue,
   name,
   molecular_weight_elemental,
   molecular_weight_total_salt,
@@ -29,7 +29,7 @@ export default function Ingredient({
   totalDoses,
   onIngredientElementalDoseChange,
 }: IngredientProps) {
-  const [elementalDose, setElementalDose] = useState(defaultValue);
+  const [elementalDose, setElementalDose] = useState<number>(0);
   const saltToElementalConversion: number =
     Number(molecular_weight_total_salt / molecular_weight_elemental) || 0;
   const totalPerDose = Number(elementalDose * saltToElementalConversion) || 0;
@@ -41,46 +41,71 @@ export default function Ingredient({
 
   const [showConstants, setShowConstants] = useState(false);
 
+  // useEffect(() => {
+  //   onIngredientElementalDoseChange({
+  //     elementalDose,
+  //     totalPerPrescription,
+  //     dollarPerPrescription,
+  //   });
+  // }, []);
+
   useEffect(() => {
     onIngredientElementalDoseChange({
       elementalDose,
       totalPerPrescription,
       dollarPerPrescription,
+      totalPerDose,
     });
-  }, [dollarPerPrescription]);
+  }, [
+    elementalDose,
+    totalPerPrescription,
+    dollarPerPrescription,
+    totalPerDose,
+    onIngredientElementalDoseChange,
+  ]);
 
   function handleElementalDoseChange(elementalDose: number) {
     setElementalDose(elementalDose);
-    onIngredientElementalDoseChange({
-      elementalDose,
-      totalPerPrescription,
-      dollarPerPrescription,
-    });
   }
 
   return (
     <div className="min-w-[350px] p-5 bg-white rounded-lg" key={name}>
       <p className="text-2xl font-thin text-center mb-5">{name}</p>
-      <div>
-        <p className="text-gray-500 flex">
-          Elemental Dose(mg):
-          <div className="ml-auto">
-            <input
-              onChange={(e) =>
-                handleElementalDoseChange(parseInt(e.target.value))
-              }
-              className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md"
-              type="number"
-              defaultValue={defaultValue}
-              onKeyDown={(e) => {
-                if (e.which === 109 || e.which === 189 || e.which === 69) {
-                  e.preventDefault();
-                }
-              }}
-            />
-          </div>
-        </p>
-      </div>
+      <p className="text-gray-500 flex">
+        Elemental Dose(mg):
+        <input
+          onChange={(e) => {
+            if (parseInt(e.target.value) < 0) {
+              e.preventDefault();
+              setElementalDose(0);
+            } else {
+              handleElementalDoseChange(parseInt(e.target.value));
+            }
+          }}
+          className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md ml-auto"
+          type="number"
+          value={elementalDose}
+          onKeyDown={(
+            e: React.ChangeEvent<HTMLInputElement> &
+              React.KeyboardEvent<HTMLInputElement>
+          ) => {
+            if (e.which === 109 || e.which === 189 || e.which === 69) {
+              e.preventDefault();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === "Backspace") {
+              e.preventDefault();
+              setElementalDose(0);
+            }
+            if (
+              e.which === 8 &&
+              (e.target.value.length === 1 || parseInt(e.target.value) < 0)
+            ) {
+              e.preventDefault();
+              setElementalDose(0);
+            }
+          }}
+        />
+      </p>
       <div className="h-[1px] w-1/2 bg-gray-400 my-3"></div>
       <div className="flex flex-col gap-2">
         <button

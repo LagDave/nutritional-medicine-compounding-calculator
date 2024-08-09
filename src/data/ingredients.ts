@@ -41,7 +41,7 @@ const ingredients: Ingredients = [
     molecular_weight_elemental: 24.3,
     molecular_weight_total_salt: 294.5,
     wholesale_price: 41.79,
-    grams_per_pack: 60,
+    grams_per_pack: 41.79,
 
     // values under this should be updated when any of the constants above are updated
     defaultValue: 125,
