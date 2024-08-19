@@ -41,14 +41,6 @@ export default function Ingredient({
 
   const [showConstants, setShowConstants] = useState(false);
 
-  // useEffect(() => {
-  //   onIngredientElementalDoseChange({
-  //     elementalDose,
-  //     totalPerPrescription,
-  //     dollarPerPrescription,
-  //   });
-  // }, []);
-
   useEffect(() => {
     onIngredientElementalDoseChange({
       elementalDose,
@@ -61,7 +53,6 @@ export default function Ingredient({
     totalPerPrescription,
     dollarPerPrescription,
     totalPerDose,
-    onIngredientElementalDoseChange,
   ]);
 
   function handleElementalDoseChange(elementalDose: number) {

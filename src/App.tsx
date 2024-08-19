@@ -1,6 +1,8 @@
 import ingredients from "./data/ingredients";
 import Ingredient from "./components/Ingredient";
 import { useEffect, useState } from "react";
+import { PDFDocument } from "pdf-lib";
+import html2canvas from "html2canvas";
 
 export default function App() {
   /** INGREDIENTS */
@@ -158,6 +160,54 @@ export default function App() {
     }
   }
 
+  async function exportForPractitioners() {
+    const style = document.createElement("style");
+    style.textContent = `
+      *, * * {
+        font-family: sans-serif !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Capture screenshot of the entire page
+    const canvas = await html2canvas(document.body, {});
+    const imgData = canvas.toDataURL("image/png");
+
+    // Create a new PDF document
+    const pdfDoc = await PDFDocument.create();
+
+    // Add a page to the document
+    const page = pdfDoc.addPage([canvas.width, canvas.height]);
+
+    // Embed the screenshot image
+    const image = await pdfDoc.embedPng(imgData);
+
+    // Draw the image on the page
+    page.drawImage(image, {
+      x: 0,
+      y: 0,
+      width: canvas.width,
+      height: canvas.height,
+    });
+
+    // Serialize the document to bytes
+    const pdfBytes = await pdfDoc.save();
+
+    // Create a download link
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(
+      new Blob([pdfBytes], { type: "application/pdf" })
+    );
+    link.download = "screenshot.pdf";
+
+    // Trigger the download
+    link.click();
+
+    // Clean up
+    URL.revokeObjectURL(link.href);
+    document.head.removeChild(style);
+  }
+
   return (
     <div className="max-w-[1280px] mx-auto my-5">
       <h1 className="text-3xl font-bold">
@@ -165,7 +215,7 @@ export default function App() {
       </h1>
 
       <div className="flex mt-[50px] gap-5">
-        <div className="flex flex-col gap-2 w-[400px]">
+        <div className="flex flex-col gap-2 w-[500px]">
           <div className="flex gap-2">
             <p>Formula Name:</p>
             <input
@@ -192,7 +242,7 @@ export default function App() {
             <textarea className="border-[1px] px-2 py-1 rounded-md border-gray-400 outline-none h-[50px] ml-auto"></textarea>
           </div>
         </div>
-        <div className="flex flex-col gap-2 w-[400px]">
+        <div className="flex flex-col gap-2 w-[500px]">
           <div className="flex gap-2">
             <p>Doses/day:</p>
             <input
@@ -393,7 +443,10 @@ export default function App() {
                   <button className="bg-gray-800 text-white rounded-md p-2">
                     Export for Patient
                   </button>
-                  <button className="bg-gray-400 text-white rounded-md p-2">
+                  <button
+                    onClick={() => exportForPractitioners()}
+                    className="bg-gray-400 text-white rounded-md p-2"
+                  >
                     Export for Practitioners
                   </button>
                 </div>
