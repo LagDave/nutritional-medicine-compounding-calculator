@@ -195,7 +195,8 @@ export default function App() {
         ? "calculatorContainer"
         : "patientDataContainer";
       const canvas = await html2canvas(
-        document.getElementById(elementId) || document.body
+        document.getElementById(elementId) || document.body,
+        { scale: 2 }
       );
       console.log(elementId);
       const imgData = canvas.toDataURL("image/png");
@@ -203,32 +204,25 @@ export default function App() {
       // Create a new PDF document
       const pdfDoc = await PDFDocument.create();
 
-      // Define A4 dimensions (in points)
-      const A4_WIDTH = 595.276; // 210 mm in points
-      const A4_HEIGHT = 841.89; // 297 mm in points
+      // Get image dimensions
+      const { width, height } = canvas;
 
-      // Add a page to the document with A4 size
-      const page = pdfDoc.addPage([A4_WIDTH, A4_HEIGHT]);
+      // Define dimensions in points (1 point = 1/72 inch)
+      const imageWidthInPoints = (width * 72) / 96; // Assuming the canvas dpi is 96
+      const imageHeightInPoints = (height * 72) / 96;
+
+      // Add a page to the document with the image dimensions
+      const page = pdfDoc.addPage([imageWidthInPoints, imageHeightInPoints]);
 
       // Embed the screenshot image
       const image = await pdfDoc.embedPng(imgData);
 
-      // Get image dimensions
-      const { width, height } = image.scale(1);
-
-      // Define desired scale factor (e.g., 0.5 for 50% of original size)
-      const scaleFactor = 0.3;
-
-      // Calculate scaled dimensions
-      const scaledWidth = width * scaleFactor;
-      const scaledHeight = height * scaleFactor;
-
       // Draw the image on the page
       page.drawImage(image, {
-        x: 10,
-        y: page.getHeight() - scaledHeight,
-        width: scaledWidth,
-        height: scaledHeight,
+        x: 0,
+        y: 0,
+        width: imageWidthInPoints,
+        height: imageHeightInPoints,
       });
 
       // Serialize the document to bytes
