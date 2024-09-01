@@ -1,8 +1,7 @@
 import ingredients from "./data/ingredients";
 import Ingredient from "./components/Ingredient";
 import { useEffect, useState } from "react";
-import { PDFDocument } from "pdf-lib";
-import html2canvas from "html2canvas";
+import { exportForPractitioners } from "./utils/exportDocument";
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,10 +21,10 @@ export default function App() {
   const [shownIngredients, setShownIngredients] = useState<number[]>([]);
 
   /** CONSUMABLES */
-  const scoopPrice = 0.45;
+  const [scoopPrice, setScoopPrice] = useState(0.45);
   const [scoop, setScoop] = useState(1);
 
-  const containerPrice = 0.85;
+  const [containerPrice, setContainerPrice] = useState(0.85);
   const [container, setContainer] = useState(1);
 
   const [consumablesTotal, setConsumablesTotal] = useState(
@@ -61,7 +60,9 @@ export default function App() {
   useEffect(() => {
     setTotalDoses(numberOfDays * dosesPerDay || 0);
     setIngredientsName(
-      shownIngredients.map((i) => `${ingredients[i].name}`).join(", ")
+      shownIngredients
+        .map((i) => `${ingredients[i].name} (${totalIngredientsArray[i]}mg)`)
+        .join(", ")
     );
   }, [numberOfDays, dosesPerDay, shownIngredients, totalIngredientsArray]);
 
@@ -106,7 +107,7 @@ export default function App() {
     const scoopTotal = scoop * scoopPrice;
     const containerTotal = container * containerPrice;
     setConsumablesTotal(scoopTotal + containerTotal);
-  }, [scoop, container]);
+  }, [scoop, container, containerPrice, scoopPrice]);
 
   /** ADDITIONALS */
   useEffect(() => {
@@ -137,7 +138,7 @@ export default function App() {
   function handleIngredientElementalDoseChange(
     index: number,
     {
-      elementalDose,
+      // elementalDose,
       totalPerPrescription,
       dollarPerPrescription,
       totalPerDose,
@@ -173,79 +174,34 @@ export default function App() {
     }
   }
 
-  async function exportDocument({
-    forPractitioners,
-  }: {
-    forPractitioners: boolean;
-  }) {
-    setIsLoading(true);
-    if (!forPractitioners) setIsPatientDataDownloaded(true);
+  function handleExport({ forPractitioners }: { forPractitioners: boolean }) {
+    exportForPractitioners({
+      forPractitioners,
+      formulaName,
+      patientName,
+      date,
+      instructions,
+      dosesPerDay,
+      numberOfDays,
+      totalDoses,
+      ingredientsName,
 
-    setTimeout(async () => {
-      const style = document.createElement("style");
-      style.textContent = `
-      #calculatorContainer, #calculatorContainer * {
-        font-family: sans-serif !important;
-      }
-    `;
-      document.head.appendChild(style);
+      totalIngredients: `${totalIngredients.toFixed(1)}mg`,
+      totalPerDose: `${(totalIngredients / 1000).toFixed(3)}g`,
+      totalPerPrescription: `${totalPerPrescription.toFixed(2)}g`,
+      ingredientsTotal: `$${ingredientsTotal.toFixed(2)}`,
 
-      // Capture screenshot of the entire page
-      const elementId = forPractitioners
-        ? "calculatorContainer"
-        : "patientDataContainer";
-      const canvas = await html2canvas(
-        document.getElementById(elementId) || document.body,
-        { scale: 2 }
-      );
-      console.log(elementId);
-      const imgData = canvas.toDataURL("image/png");
+      container,
+      scoop,
+      consumablesTotal,
 
-      // Create a new PDF document
-      const pdfDoc = await PDFDocument.create();
+      materialsMarkup,
+      materialsMarkupTotal: Number(materialsMarkupTotal.toFixed(2)),
+      compoundingFee,
+      totalAdditionals: Number(totalAdditionals.toFixed(2)),
 
-      // Get image dimensions
-      const { width, height } = canvas;
-
-      // Define dimensions in points (1 point = 1/72 inch)
-      const imageWidthInPoints = (width * 72) / 96; // Assuming the canvas dpi is 96
-      const imageHeightInPoints = (height * 72) / 96;
-
-      // Add a page to the document with the image dimensions
-      const page = pdfDoc.addPage([imageWidthInPoints, imageHeightInPoints]);
-
-      // Embed the screenshot image
-      const image = await pdfDoc.embedPng(imgData);
-
-      // Draw the image on the page
-      page.drawImage(image, {
-        x: 0,
-        y: 0,
-        width: imageWidthInPoints,
-        height: imageHeightInPoints,
-      });
-
-      // Serialize the document to bytes
-      const pdfBytes = await pdfDoc.save();
-
-      // Create a download link
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(
-        new Blob([pdfBytes], { type: "application/pdf" })
-      );
-      link.download = "screenshot.pdf";
-
-      // Trigger the download
-      link.click();
-
-      // Clean up
-      URL.revokeObjectURL(link.href);
-      document.head.removeChild(style);
-      if (!forPractitioners) setIsPatientDataDownloaded(false);
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 2000);
-    }, 1000);
+      priceToPatient: Number(priceToPatient.toFixed(2)),
+    });
   }
 
   return (
@@ -405,7 +361,7 @@ export default function App() {
               <div className="flex gap-2">
                 <p>Total per dose (g):</p>
                 <p className="font-bold">
-                  {(totalIngredients / 1000).toFixed(3)}mg
+                  {(totalIngredients / 1000).toFixed(3)}g
                 </p>
               </div>
               <div className="flex gap-2">
@@ -420,25 +376,45 @@ export default function App() {
             </div>
           </div>
           <div className="w-1/4 border border-gray-400 p-5 rounded-md">
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-4">
               <p className="font-bold">Consumables:</p>
-              <div className="flex gap-2 items-center">
+              <div className="flex flex-col gap-2">
                 <p>Container:</p>
-                <input
-                  defaultValue={container}
-                  onChange={(e) => setContainer(parseInt(e.target.value))}
-                  type="text"
-                  className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md"
-                />
+                <div className="flex gap-2 items-center">
+                  <input
+                    defaultValue={container}
+                    onChange={(e) => setContainer(parseInt(e.target.value))}
+                    type="text"
+                    className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md"
+                  />
+                  x
+                  <input
+                    defaultValue={containerPrice}
+                    onChange={(e) =>
+                      setContainerPrice(parseInt(e.target.value))
+                    }
+                    type="text"
+                    className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md"
+                  />
+                </div>
               </div>
-              <div className="flex gap-2 items-center">
+              <div className="flex flex-col gap-2">
                 <p>Scoop:</p>
-                <input
-                  defaultValue={scoop}
-                  onChange={(e) => setScoop(parseInt(e.target.value))}
-                  type="text"
-                  className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md"
-                />
+                <div className="flex gap-2 items-center">
+                  <input
+                    defaultValue={scoop}
+                    onChange={(e) => setScoop(parseInt(e.target.value))}
+                    type="text"
+                    className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md"
+                  />
+                  x
+                  <input
+                    defaultValue={scoopPrice}
+                    onChange={(e) => setScoopPrice(parseInt(e.target.value))}
+                    type="text"
+                    className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md"
+                  />
+                </div>
               </div>
               <p>
                 Total Consumables: <strong>${consumablesTotal}</strong>
@@ -490,15 +466,13 @@ export default function App() {
                   <p className="text-xl">${priceToPatient.toFixed(2)}</p>
                   <div className="flex flex-col gap-2 mt-5">
                     <button
-                      onClick={() =>
-                        exportDocument({ forPractitioners: false })
-                      }
+                      onClick={() => handleExport({ forPractitioners: false })}
                       className="bg-gray-800 text-white rounded-md p-2"
                     >
                       Export for Patient
                     </button>
                     <button
-                      onClick={() => exportDocument({ forPractitioners: true })}
+                      onClick={() => handleExport({ forPractitioners: true })}
                       className="bg-gray-400 text-white rounded-md p-2"
                     >
                       Export for Practitioners
@@ -531,10 +505,7 @@ export default function App() {
         </div>
       )}
       {isLoading && (
-        <div
-          onClick={() => exportDocument({ forPractitioners: true })}
-          className="fixed bg-gray-100 flex items-center justify-center top-0 w-full h-full"
-        >
+        <div className="fixed bg-gray-100 flex items-center justify-center top-0 w-full h-full">
           <p className="text-2xl">Please wait...</p>
         </div>
       )}
