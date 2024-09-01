@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { exportForPractitioners } from "./utils/exportDocument";
 
 export default function App() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPatientDataDownloaded, setIsPatientDataDownloaded] = useState(false);
+  const [isLoading] = useState(false);
+  const [isPatientDataDownloaded] = useState(false);
 
   /** DATA */
   const [patientName, setPatientName] = useState("");
