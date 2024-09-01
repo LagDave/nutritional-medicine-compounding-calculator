@@ -31,6 +31,6 @@ jobs:
 
       - name: Deploy files via SCP
         run: |
-          rsync -avz --delete-after ./build/ user@your-server-ip:/home/master/applications/ajxhjxagtg/public_html
+          rsync -avz --delete-after ./build/ master_kuuxjudwmu@170.64.154.237:/home/master/applications/ajxhjxagtg/public_html
         env:
           SSH_KNOWN_HOSTS: your-server-ip
