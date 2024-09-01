@@ -206,7 +206,7 @@ export default function App() {
 
   return (
     <>
-      <div id="calculatorContainer" className="max-w-[1280px] mx-auto my-5">
+      <div id="calculatorContainer" className="max-w-[1280px] mx-auto my-5 p-5">
         <h1 className="text-3xl font-bold">
           Extemporaneous Compounding Calculator
         </h1>
