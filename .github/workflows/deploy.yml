@@ -24,6 +24,9 @@ jobs:
       - name: Build the project
         run: npm run build
 
+      - name: Add server to known_hosts
+        run: ssh-keyscan -H 170.64.154.237 >> ~/.ssh/known_hosts
+
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.5.3
         with:
@@ -33,4 +36,4 @@ jobs:
         run: |
           rsync -avz --delete-after ./build/ master_kuuxjudwmu@170.64.154.237:/home/master/applications/ajxhjxagtg/public_html
         env:
-          SSH_KNOWN_HOSTS: your-server-ip
+          SSH_KNOWN_HOSTS: 170.64.154.237
