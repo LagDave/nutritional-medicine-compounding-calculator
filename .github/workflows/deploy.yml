@@ -26,7 +26,7 @@ jobs:
 
       - name: List dist directory contents
         run: ls -la ./dist
-        
+
       - name: SCP files via ssh key
         uses: appleboy/scp-action@master
         with:
@@ -34,4 +34,4 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: './dist/*'
-          target: '/home/master/applications/ajxhjxagtg/public_html'
+          target: '/home/master/applications/ajxhjxagtg/public_html/af194bd8-85b9-47ab-9861-7c166a61719f'
