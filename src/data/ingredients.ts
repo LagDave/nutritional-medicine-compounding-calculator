@@ -37,7 +37,7 @@ const ingredients: Ingredients = [
     defaultTotalPerDose: 200,
   },
   {
-    name: "Magnesium (as threonate)",
+    name: "Magnesium Threonate",
     molecular_weight_elemental: 24.3,
     molecular_weight_total_salt: 294.5,
     wholesale_price: 41.79,
