@@ -76,25 +76,25 @@ export default function Ingredient({
           className="border-[1px] px-2 py-1 w-[100px] border-gray-400 outline-none rounded-md ml-auto"
           type="number"
           value={elementalDose}
-          onKeyDown={(
-            e: React.ChangeEvent<HTMLInputElement> &
-              React.KeyboardEvent<HTMLInputElement>
-          ) => {
-            if (e.which === 109 || e.which === 189 || e.which === 69) {
-              e.preventDefault();
-            }
-            if ((e.ctrlKey || e.metaKey) && e.key === "Backspace") {
-              e.preventDefault();
-              setElementalDose(0);
-            }
-            if (
-              e.which === 8 &&
-              (e.target.value.length === 1 || parseInt(e.target.value) < 0)
-            ) {
-              e.preventDefault();
-              setElementalDose(0);
-            }
-          }}
+          // onKeyDown={(
+          //   e: React.ChangeEvent<HTMLInputElement> &
+          //     React.KeyboardEvent<HTMLInputElement>
+          // ) => {
+          //   if (e.which === 109 || e.which === 189 || e.which === 69) {
+          //     e.preventDefault();
+          //   }
+          //   if ((e.ctrlKey || e.metaKey) && e.key === "Backspace") {
+          //     e.preventDefault();
+          //     setElementalDose(0);
+          //   }
+          //   if (
+          //     e.which === 8 &&
+          //     (e.target.value.length === 1 || parseInt(e.target.value) < 0)
+          //   ) {
+          //     e.preventDefault();
+          //     setElementalDose(0);
+          //   }
+          // }}
         />
       </p>
       <div className="h-[1px] w-1/2 bg-gray-400 my-3"></div>
