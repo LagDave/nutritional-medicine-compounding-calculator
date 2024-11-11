@@ -19,7 +19,11 @@ type exportForPractitionersType = {
   dosesPerDay: number;
   numberOfDays: number;
   totalDoses: number;
-  ingredientsName: string;
+  ingredientsNameAndDoseMap: {
+    name: string;
+    totalPerDose: string;
+    totalPerPrescription: string;
+  }[];
 
   totalIngredients: string;
   totalPerDose: string;
@@ -47,11 +51,7 @@ export async function exportForPractitioners({
   dosesPerDay,
   numberOfDays,
   totalDoses,
-  ingredientsName,
-  totalIngredients,
-  totalPerDose,
-  totalPerPrescription,
-  ingredientsTotal,
+  ingredientsNameAndDoseMap,
   container,
   scoop,
   consumablesTotal,
@@ -62,36 +62,21 @@ export async function exportForPractitioners({
   priceToPatient,
 }: exportForPractitionersType) {
   setTimeout(async () => {
-    // Create a new PDF document
     const pdfDoc = await PDFDocument.create();
-
-    // Set the page size to A4
-    const page = pdfDoc.addPage([a4Width, a4Height]); // A4 dimensions in points
-
-    // Embed the fonts
+    const page = pdfDoc.addPage([a4Width, a4Height]);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Reset yCounter
     yCounter = a4Height - 30;
 
     forPractitioners &&
       createText(page, `Practitioner export for ${patientName}`, 14, fontBold);
     !forPractitioners &&
       createText(page, `Export for ${patientName}`, 14, fontBold);
-    /* for patient */ createText(
-      page,
-      `Formula Name: ${formulaName}`,
-      10,
-      font
-    );
+
+    createText(page, `Formula Name: ${formulaName}`, 10, font);
     forPractitioners && createText(page, `Date: ${date}`, 10, font);
-    /* for patient */ createText(
-      page,
-      `Doses per day: ${dosesPerDay}`,
-      10,
-      font
-    );
+    createText(page, `Doses per day: ${dosesPerDay}`, 10, font);
     forPractitioners &&
       createText(page, `Number of days: ${numberOfDays}`, 10, font);
     forPractitioners &&
@@ -99,33 +84,112 @@ export async function exportForPractitioners({
 
     yCounter -= 15;
 
-    /* for patient */ createText(page, `Ingredients`, 10, fontBold); //
-    /* for patient */ createText(
-      page,
-      `Ingredients: ${ingredientsName}`,
-      10,
-      font
-    ); //
-    forPractitioners &&
-      createText(page, `Total Ingredients(mg): ${totalIngredients}`, 10, font);
-    forPractitioners &&
-      createText(page, `Total per dose(g): ${totalPerDose}`, 10, font);
-    forPractitioners &&
-      createText(
-        page,
-        `Total per prescription(g): ${totalPerPrescription}`,
-        10,
-        font
-      );
-    forPractitioners &&
-      createText(
-        page,
-        `Total prescription price(g): ${ingredientsTotal}`,
-        10,
-        font
-      );
+    createText(page, `Ingredients:`, 10, fontBold);
 
-    if (forPractitioners) yCounter -= 15;
+    if (!forPractitioners) {
+      ingredientsNameAndDoseMap.forEach((item, index) => {
+        createText(page, `${index + 1}. ${item.name}`, 10, font);
+      });
+    }
+
+    // Ingredients Table Section
+    if (forPractitioners) {
+      const startX = 10; // Left alignment
+      // Adjusted cell widths based on content
+      const cellWidths = [
+        90, // Ingredient
+        80, // Weight per dose
+        120, // Weight per prescription (wider for longer text)
+        80, // Actual weight
+        80, // Batch no.
+        80, // Expiry date
+      ];
+      const cellHeight = 25;
+      const headers = [
+        "Ingredient",
+        "Weight per dose",
+        "Weight per prescription",
+        "Actual weight",
+        "Batch no.",
+        "Expiry date",
+      ];
+
+      let startY = yCounter;
+      let currentX = startX;
+
+      // Draw header cells
+      headers.forEach((header, index) => {
+        // Draw header cell
+        page.drawRectangle({
+          x: currentX,
+          y: startY - cellHeight,
+          width: cellWidths[index],
+          height: cellHeight,
+          borderColor: rgb(0, 0, 0),
+          borderWidth: 1,
+        });
+
+        // Draw header text
+        page.drawText(header, {
+          x: currentX + 5,
+          y: startY - 15,
+          size: 8,
+          font: fontBold,
+        });
+
+        currentX += cellWidths[index];
+      });
+
+      startY -= cellHeight;
+
+      // Draw data rows
+      ingredientsNameAndDoseMap.forEach((item) => {
+        currentX = startX; // Reset X position for new row
+
+        // Draw row cells
+        headers.forEach((_, colIndex) => {
+          page.drawRectangle({
+            x: currentX,
+            y: startY - cellHeight,
+            width: cellWidths[colIndex],
+            height: cellHeight,
+            borderColor: rgb(0, 0, 0),
+            borderWidth: 1,
+          });
+
+          // Prepare cell content
+          let cellText = "";
+          switch (colIndex) {
+            case 0: // Ingredient
+              cellText = item.name;
+              break;
+            case 1: // Weight per dose
+              cellText = `${Number(item.totalPerDose).toFixed(2)} mg`;
+              break;
+            case 2: // Weight per prescription
+              cellText = `${Number(item.totalPerPrescription).toFixed(2)} mg`;
+              break;
+            // Leave other cells empty for now
+          }
+
+          // Draw cell text if it exists
+
+          page.drawText(cellText, {
+            x: currentX + 5,
+            y: startY - 15,
+            size: 8,
+            font: font,
+          });
+
+          currentX += cellWidths[colIndex];
+        });
+
+        startY -= cellHeight;
+      });
+
+      // Update yCounter for the rest of the document
+      yCounter = startY - 30;
+    }
 
     forPractitioners && createText(page, `Consumables`, 10, fontBold);
     forPractitioners && createText(page, `Container: ${container}`, 10, font);
@@ -160,23 +224,16 @@ export async function exportForPractitioners({
       );
 
     yCounter -= 15;
-    /* for patient */ createText(page, `Instructions`, 10, fontBold);
+    createText(page, `Instructions`, 10, fontBold);
     createText(page, `${instructions}`, 10, font);
 
-    // Serialize the document to bytes
     const pdfBytes = await pdfDoc.save();
-
-    // Create a download link
     const link = document.createElement("a");
     link.href = URL.createObjectURL(
       new Blob([pdfBytes], { type: "application/pdf" })
     );
     link.download = "export.pdf";
-
-    // Trigger the download
     link.click();
-
-    // Clean up
     URL.revokeObjectURL(link.href);
   }, 1000);
 }

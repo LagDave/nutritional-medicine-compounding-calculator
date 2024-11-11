@@ -5,14 +5,15 @@ import { exportForPractitioners } from "./utils/exportDocument";
 
 export default function App() {
   const [isLoading] = useState(false);
-  const [isPatientDataDownloaded] = useState(false);
 
   /** DATA */
   const [patientName, setPatientName] = useState("");
   const [formulaName, setFormulaName] = useState("");
   const [date, setDate] = useState("");
   const [instructions, setInstructions] = useState("");
-  const [ingredientsName, setIngredientsName] = useState("");
+  const [ingredientsNameAndDoseMap, setIngredientsNameAndDoseMap] = useState<
+    { name: string; totalPerDose: string; totalPerPrescription: string }[]
+  >([]);
 
   /** INGREDIENTS */
   const [totalDoses, setTotalDoses] = useState(1);
@@ -59,12 +60,23 @@ export default function App() {
 
   useEffect(() => {
     setTotalDoses(numberOfDays * dosesPerDay || 0);
-    setIngredientsName(
-      shownIngredients
-        .map((i) => `${ingredients[i].name} (${totalIngredientsArray[i]}mg)`)
-        .join(", ")
-    );
-  }, [numberOfDays, dosesPerDay, shownIngredients, totalIngredientsArray]);
+    if (!shownIngredients) return;
+
+    const mapper = shownIngredients.map((i) => ({
+      name: ingredients[i].name,
+      totalPerDose: totalIngredientsArray[i].toString(),
+      totalPerPrescription: totalPerPrescriptionArray[i].toString(),
+    }));
+    console.log(mapper);
+
+    setIngredientsNameAndDoseMap(mapper);
+  }, [
+    numberOfDays,
+    dosesPerDay,
+    shownIngredients,
+    totalIngredientsArray,
+    totalPerPrescriptionArray,
+  ]);
 
   useEffect(() => {
     setIngredientsTotal(
@@ -184,7 +196,7 @@ export default function App() {
       dosesPerDay,
       numberOfDays,
       totalDoses,
-      ingredientsName,
+      ingredientsNameAndDoseMap,
 
       totalIngredients: `${totalIngredients.toFixed(1)}mg`,
       totalPerDose: `${(totalIngredients / 1000).toFixed(3)}g`,
@@ -484,26 +496,6 @@ export default function App() {
           </div>
         </div>
       </div>
-      {isPatientDataDownloaded && (
-        <div
-          id="patientDataContainer"
-          className="fixed bg-white p-5 top-0 w-[800px] h-[500px]"
-        >
-          <p className="text-2xl mb-2">Export for {patientName}:</p>
-          <p>
-            Formula Name: <strong>{formulaName}</strong>
-          </p>
-          <p>
-            Ingredients: <strong>{ingredientsName}</strong>
-          </p>
-          <p>
-            Doses per day: <strong>{dosesPerDay}</strong>
-          </p>
-          <p>
-            Instructions: <strong>{instructions}</strong>
-          </p>
-        </div>
-      )}
       {isLoading && (
         <div className="fixed bg-gray-100 flex items-center justify-center top-0 w-full h-full">
           <p className="text-2xl">Please wait...</p>

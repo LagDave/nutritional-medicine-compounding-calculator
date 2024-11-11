@@ -29,10 +29,12 @@ export default function Ingredient({
   totalDoses,
   onIngredientElementalDoseChange,
 }: IngredientProps) {
-  const [elementalDose, setElementalDose] = useState<number>(0);
+  const [elementalDose, setElementalDose] = useState<number>();
   const saltToElementalConversion: number =
     Number(molecular_weight_total_salt / molecular_weight_elemental) || 0;
-  const totalPerDose = Number(elementalDose * saltToElementalConversion) || 0;
+  const totalPerDose = elementalDose
+    ? Number(elementalDose * saltToElementalConversion) || 0
+    : 0;
   const totalPerPrescription: number = Number(
     (totalPerDose * (totalDoses || 0)) / 1000
   );
@@ -43,7 +45,7 @@ export default function Ingredient({
 
   useEffect(() => {
     onIngredientElementalDoseChange({
-      elementalDose,
+      elementalDose: elementalDose ? elementalDose : 0,
       totalPerPrescription,
       dollarPerPrescription,
       totalPerDose,
@@ -63,7 +65,7 @@ export default function Ingredient({
     <div className="min-w-[350px] p-5 bg-white rounded-lg" key={name}>
       <p className="text-2xl font-thin text-center mb-5">{name}</p>
       <p className="text-gray-500 flex">
-        Elemental Dose(mg):
+        Amount per Dose (mg):
         <input
           onChange={(e) => {
             if (parseInt(e.target.value) < 0) {
@@ -133,12 +135,12 @@ export default function Ingredient({
             </strong>
           </p>
         </div>
-        <p className="text-gray-500 flex">
+        {/* <p className="text-gray-500 flex">
           Salt to elemental conversion:
           <strong className="text-black ml-auto">
             {saltToElementalConversion.toFixed(2)}
           </strong>
-        </p>
+        </p> */}
         <p className="text-gray-500 flex">
           Total per dose (mg):
           <strong className="text-black ml-auto">
