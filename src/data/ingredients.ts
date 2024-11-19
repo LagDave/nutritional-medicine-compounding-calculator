@@ -38,7 +38,7 @@ const ingredients: Ingredients = [
   },
   {
     name: "Magnesium Threonate",
-    molecular_weight_elemental: 24.3,
+    molecular_weight_elemental: 294.5,
     molecular_weight_total_salt: 294.5,
     wholesale_price: 41.79,
     grams_per_pack: 41.79,

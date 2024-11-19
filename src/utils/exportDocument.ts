@@ -232,7 +232,9 @@ export async function exportForPractitioners({
     link.href = URL.createObjectURL(
       new Blob([pdfBytes], { type: "application/pdf" })
     );
-    link.download = "export.pdf";
+    link.download = `${patientName} - ${
+      forPractitioners ? "Practitioner" : "Patient"
+    } File.pdf`;
     link.click();
     URL.revokeObjectURL(link.href);
   }, 1000);
